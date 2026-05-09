@@ -254,9 +254,9 @@ let selectedFile = null;
 let selectedUrl = null;
 let selectedIsVideo = false;
 
-/* TODO IGUAL (SIN CAMBIOS FUNCIONALES) */
-
+/* IOS */
 function openIOS(file, url, isVideo) {
+
   selectedFile = file;
   selectedUrl = url;
   selectedIsVideo = isVideo;
@@ -271,8 +271,16 @@ function openIOS(file, url, isVideo) {
   iosOverlay.style.display = "flex";
 }
 
-iosOverlay.addEventListener("click", (e) => {
-  if (e.target === iosOverlay) iosOverlay.style.display = "none";
+/* cerrar al tocar fondo o fuera del menú */
+document.addEventListener("click", (e) => {
+  if (!iosOverlay || iosOverlay.style.display !== "flex") return;
+
+  const isInsideMenu = e.target.closest(".iosMenu");
+  const isInsideMedia = e.target.closest(".iosPreviewMedia");
+
+  if (!isInsideMenu && !isInsideMedia) {
+    iosOverlay.style.display = "none";
+  }
 });
 
 function shareFile() {
