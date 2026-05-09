@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -130,16 +131,12 @@ body {
   z-index: 20000;
 }
 
-/* CONTENEDOR CENTRAL */
 .iosPreviewBox {
   display: flex;
   align-items: center;
   gap: 18px;
-  transform: scale(0.95);
-  animation: pop .2s ease forwards;
 }
 
-/* PREVIEW GRANDE (2/3 pantalla móvil) */
 .iosPreviewMedia {
   width: 65vw;
   max-width: 420px;
@@ -157,7 +154,6 @@ body {
   object-fit: cover;
 }
 
-/* MENÚ iOS */
 .iosMenu {
   display: flex;
   flex-direction: column;
@@ -177,11 +173,6 @@ body {
 
 .iosMenu button:active {
   transform: scale(0.97);
-}
-
-@keyframes pop {
-  from { transform: scale(0.9); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
 }
 
 </style>
@@ -249,25 +240,15 @@ const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS
 const client = supabase.createClient(supabaseUrl, supabaseKey);
 
 const gallery = document.getElementById("gallery");
-
 const iosOverlay = document.getElementById("iosOverlay");
 const iosMedia = document.getElementById("iosMedia");
-
-const DELETE_KEY = "17102026";
 
 let selectedFile = null;
 let selectedUrl = null;
 let selectedIsVideo = false;
 
-/* VISOR */
-function openViewer(url, isVideo) {
-  const win = document.getElementById("viewerContent");
-  document.getElementById("viewer").style.display = "flex";
-}
-
-/* iOS PREVIEW */
+/* IOS MENU */
 function openIOS(file, url, isVideo) {
-
   selectedFile = file;
   selectedUrl = url;
   selectedIsVideo = isVideo;
@@ -282,33 +263,48 @@ function openIOS(file, url, isVideo) {
   iosOverlay.style.display = "flex";
 }
 
-/* cerrar overlay */
 iosOverlay.addEventListener("click", (e) => {
   if (e.target === iosOverlay) iosOverlay.style.display = "none";
 });
 
-/* acciones */
+/* SHARE */
 function shareFile() {
   navigator.share?.({ url: selectedUrl }) || alert("No disponible");
 }
 
+/* 🔥 DESCARGA MEJORADA (ARREGLADA) */
 function downloadFile() {
-  const a = document.createElement("a");
-  a.href = selectedUrl;
-  a.download = "";
-  a.click();
+  fetch(selectedUrl)
+    .then(r => r.blob())
+    .then(blob => {
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = selectedFile || "foto.jpg";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    })
+    .catch(() => {
+      const a = document.createElement("a");
+      a.href = selectedUrl;
+      a.target = "_self";
+      a.click();
+    });
 }
 
+/* DELETE */
 function deleteFile() {
   const key = prompt("Clave:");
-  if (key !== DELETE_KEY) return alert("Incorrecto");
+  if (key !== "17102026") return alert("Incorrecto ❌");
 
   client.storage.from("fotos").remove([selectedFile]);
   iosOverlay.style.display = "none";
   loadFiles();
 }
 
-/* subir */
+/* UPLOAD */
 fileInput.addEventListener("change", async (e) => {
   for (let f of e.target.files) {
     await client.storage.from("fotos").upload(Date.now()+"_"+f.name, f);
@@ -316,9 +312,8 @@ fileInput.addEventListener("change", async (e) => {
   loadFiles();
 });
 
-/* cargar */
+/* LOAD */
 async function loadFiles() {
-
   gallery.innerHTML = "";
 
   const { data } = await client.storage.from("fotos").list("", { limit: 200 });
@@ -338,27 +333,15 @@ async function loadFiles() {
     const el = document.createElement(isVideo ? "video" : "img");
     el.src = url.publicUrl;
 
-    /* CLICK NORMAL */
-    el.addEventListener("click", () => {
-      const viewer = document.getElementById("viewer");
-      const content = document.getElementById("viewerContent");
-      content.innerHTML = "";
+    el.addEventListener("click", () =>
+      openIOS(file.name, url.publicUrl, isVideo)
+    );
 
-      const big = document.createElement(isVideo ? "video" : "img");
-      big.src = url.publicUrl;
-      if (isVideo) big.controls = true;
-
-      content.appendChild(big);
-      viewer.style.display = "flex";
-    });
-
-    /* LONG PRESS (iOS STYLE) */
     let timer;
-
     el.addEventListener("touchstart", () => {
-      timer = setTimeout(() => {
-        openIOS(file.name, url.publicUrl, isVideo);
-      }, 500);
+      timer = setTimeout(() =>
+        openIOS(file.name, url.publicUrl, isVideo)
+      , 500);
     });
 
     el.addEventListener("touchend", () => clearTimeout(timer));
