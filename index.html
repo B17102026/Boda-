@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -90,10 +89,9 @@ body {
   cursor: pointer;
   border-radius: 18px;
   box-shadow: 0 6px 18px rgba(0,0,0,0.12);
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
 
-/* VISOR NORMAL */
+/* VISOR */
 .viewer {
   position: fixed;
   inset: 0;
@@ -119,7 +117,7 @@ body {
   cursor: pointer;
 }
 
-/* 🔥 iOS STYLE OVERLAY */
+/* iOS OVERLAY */
 .iosOverlay {
   position: fixed;
   inset: 0;
@@ -216,7 +214,7 @@ body {
 
 <div class="gallery" id="gallery"></div>
 
-<!-- iOS OVERLAY -->
+<!-- iOS MENU -->
 <div class="iosOverlay" id="iosOverlay">
   <div class="iosPreviewBox">
 
@@ -240,6 +238,7 @@ const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS
 const client = supabase.createClient(supabaseUrl, supabaseKey);
 
 const gallery = document.getElementById("gallery");
+
 const iosOverlay = document.getElementById("iosOverlay");
 const iosMedia = document.getElementById("iosMedia");
 
@@ -247,8 +246,9 @@ let selectedFile = null;
 let selectedUrl = null;
 let selectedIsVideo = false;
 
-/* IOS MENU */
+/* OPEN IOS MENU */
 function openIOS(file, url, isVideo) {
+
   selectedFile = file;
   selectedUrl = url;
   selectedIsVideo = isVideo;
@@ -272,26 +272,35 @@ function shareFile() {
   navigator.share?.({ url: selectedUrl }) || alert("No disponible");
 }
 
-/* 🔥 DESCARGA MEJORADA (ARREGLADA) */
-function downloadFile() {
-  fetch(selectedUrl)
-    .then(r => r.blob())
-    .then(blob => {
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = selectedFile || "foto.jpg";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
-    })
-    .catch(() => {
-      const a = document.createElement("a");
-      a.href = selectedUrl;
-      a.target = "_self";
-      a.click();
+/* 🔥 DESCARGA COMPATIBLE (iOS + Android) */
+async function downloadFile() {
+  try {
+    const blob = await fetch(selectedUrl).then(r => r.blob());
+
+    const file = new File([blob], selectedFile || "foto.jpg", {
+      type: blob.type
     });
+
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({
+        files: [file],
+        title: "Foto"
+      });
+      return;
+    }
+
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = selectedFile || "foto.jpg";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+
+  } catch (e) {
+    alert("No se pudo descargar");
+  }
 }
 
 /* DELETE */
@@ -314,6 +323,7 @@ fileInput.addEventListener("change", async (e) => {
 
 /* LOAD */
 async function loadFiles() {
+
   gallery.innerHTML = "";
 
   const { data } = await client.storage.from("fotos").list("", { limit: 200 });
@@ -323,6 +333,7 @@ async function loadFiles() {
     if (!file?.name?.includes(".")) continue;
 
     const lower = file.name.toLowerCase();
+
     const isImage = /\.(jpg|jpeg|png|webp|gif)$/.test(lower);
     const isVideo = /\.(mp4|mov|webm)$/.test(lower);
 
@@ -333,9 +344,9 @@ async function loadFiles() {
     const el = document.createElement(isVideo ? "video" : "img");
     el.src = url.publicUrl;
 
-    el.addEventListener("click", () =>
-      openIOS(file.name, url.publicUrl, isVideo)
-    );
+    el.addEventListener("click", () => {
+      openIOS(file.name, url.publicUrl, isVideo);
+    });
 
     let timer;
     el.addEventListener("touchstart", () => {
