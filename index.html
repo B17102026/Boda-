@@ -294,16 +294,17 @@ function deleteFile() {
   loadFiles();
 }
 
-/* UPLOAD + TEXTO */
+/* UPLOAD - SOLO 1 TEXTO PARA TODAS */
 fileInput.addEventListener("change", async (e) => {
 
-  for (let f of e.target.files) {
+  const files = e.target.files;
+  if (!files.length) return;
 
-    const caption = prompt("Escribe un texto para esta foto (opcional):") || "";
-    const safeCaption = caption.replaceAll(" ", "_");
+  const caption = prompt("Escribe un texto para TODAS las fotos (opcional):") || "";
+  const safeCaption = caption.replaceAll(" ", "_");
 
+  for (let f of files) {
     const name = Date.now() + "__" + safeCaption + "__" + f.name;
-
     await client.storage.from("fotos").upload(name, f);
   }
 
@@ -323,8 +324,6 @@ async function loadFiles() {
 
     const parts = file.name.split("__");
     const caption = parts[1]?.replaceAll("_", " ") || "";
-
-    const realName = file.name;
 
     const lower = file.name.toLowerCase();
 
