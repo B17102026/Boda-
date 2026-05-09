@@ -14,14 +14,23 @@ body {
   text-align: center;
   font-family: 'Playfair Display', serif;
   color: #111;
-  background: #f6f1ea; /* 👈 más papel retro */
+  background: #ffffff;
 }
 
-/* HEADER (igual) */
 .header {
   position: relative;
   padding: 120px 20px 30px;
   overflow: hidden;
+}
+
+.header-illustration {
+  position: absolute;
+  top: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 520px;
+  opacity: 0.14;
+  pointer-events: none;
 }
 
 .header-content {
@@ -32,11 +41,14 @@ body {
 .title {
   font-family: 'Great Vibes', cursive;
   font-size: 60px;
+  line-height: 1.1;
+  margin-bottom: 10px;
 }
 
 .text {
   font-size: 18px;
   color: #444;
+  margin-bottom: 40px;
 }
 
 .buttons {
@@ -52,7 +64,13 @@ body {
   padding: 14px 30px;
   border-radius: 12px;
   font-size: 13px;
+  letter-spacing: 2px;
   cursor: pointer;
+  transition: transform 0.12s ease;
+}
+
+.btn:active {
+  transform: translateY(5px) scale(0.97);
 }
 
 /* GALERÍA */
@@ -63,54 +81,35 @@ body {
   padding: 25px;
 }
 
-/* 🟤 POLAROID RETRO MEJORADA */
+/* 🟡 POLAROID RETRO */
 .polaroid {
-  background: #fffdf7;
-  padding: 10px 10px 22px;
+  background: #fff;
+  padding: 10px 10px 28px;
   border-radius: 6px;
-  box-shadow:
-    0 2px 6px rgba(0,0,0,0.08),
-    0 12px 25px rgba(0,0,0,0.12);
+  box-shadow: 0 12px 28px rgba(0,0,0,0.18);
   transform: rotate(var(--r));
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
-  position: relative;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-/* textura suave */
-.polaroid::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: repeating-linear-gradient(
-    45deg,
-    rgba(0,0,0,0.015),
-    rgba(0,0,0,0.015) 2px,
-    transparent 2px,
-    transparent 5px
-  );
-  pointer-events: none;
-}
-
-/* hover estilo físico */
 .polaroid:hover {
-  transform: scale(1.04) rotate(0deg);
+  transform: scale(1.03) rotate(0deg);
+  box-shadow: 0 18px 40px rgba(0,0,0,0.25);
 }
 
-/* imagen */
 .polaroid img,
 .polaroid video {
   width: 100%;
   aspect-ratio: 1/1;
   object-fit: cover;
-  border-radius: 4px;
+  border-radius: 6px;
 }
 
-/* 📝 TEXTO POLAROID */
+/* 🏷️ TEXTO POLAROID */
 .caption {
-  font-size: 12px;
+  font-size: 13px;
+  color: #111;
   margin-top: 8px;
-  color: #333;
-  font-style: italic;
+  font-family: 'Playfair Display', serif;
 }
 
 /* VISOR */
@@ -130,7 +129,16 @@ body {
   max-height: 90%;
 }
 
-/* iOS OVERLAY (igual) */
+.closeViewer {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  font-size: 30px;
+  color: white;
+  cursor: pointer;
+}
+
+/* iOS OVERLAY */
 .iosOverlay {
   position: fixed;
   inset: 0;
@@ -139,6 +147,7 @@ body {
   display: none;
   align-items: center;
   justify-content: center;
+  z-index: 20000;
 }
 
 .iosPreviewBox {
@@ -154,6 +163,14 @@ body {
   border-radius: 20px;
   overflow: hidden;
   background: black;
+  box-shadow: 0 25px 70px rgba(0,0,0,0.4);
+}
+
+.iosPreviewMedia img,
+.iosPreviewMedia video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .iosMenu {
@@ -169,6 +186,8 @@ body {
   border-radius: 14px;
   font-size: 14px;
   cursor: pointer;
+  min-width: 120px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.15);
 }
 
 </style>
@@ -177,6 +196,18 @@ body {
 <body>
 
 <div class="header">
+
+<svg class="header-illustration" viewBox="0 0 600 400">
+  <defs>
+    <pattern id="hatch" width="6" height="6">
+      <path d="M0 0 L6 6" stroke="#000" stroke-width="0.5"/>
+    </pattern>
+  </defs>
+
+  <path d="M220 80 C200 120,210 160,230 200 C250 260,190 310,170 360 L290 360 C270 300,220 260,250 200 C270 160,280 120,260 80 Z"
+        fill="url(#hatch)" stroke="#000"/>
+</svg>
+
   <div class="header-content">
     <div class="title">Recuerdos de un día<br>inolvidable</div>
     <div class="text">Conservados para siempre.</div>
@@ -194,15 +225,12 @@ body {
 <!-- iOS MENU -->
 <div class="iosOverlay" id="iosOverlay">
   <div class="iosPreviewBox">
-
     <div class="iosPreviewMedia" id="iosMedia"></div>
-
     <div class="iosMenu">
       <button onclick="shareFile()">Compartir</button>
       <button onclick="downloadFile()">Descargar</button>
       <button onclick="deleteFile()">Borrar</button>
     </div>
-
   </div>
 </div>
 
@@ -222,18 +250,14 @@ const iosMedia = document.getElementById("iosMedia");
 
 let selectedFile = null;
 let selectedUrl = null;
+let selectedIsVideo = false;
 
-/* 📝 pedir texto */
-function askCaption() {
-  const text = prompt("Añade un texto a la foto (opcional):");
-  return text || "";
-}
-
-/* IOS MENU */
+/* IOS */
 function openIOS(file, url, isVideo) {
 
   selectedFile = file;
   selectedUrl = url;
+  selectedIsVideo = isVideo;
 
   iosMedia.innerHTML = "";
 
@@ -254,7 +278,6 @@ function shareFile() {
   navigator.share?.({ url: selectedUrl });
 }
 
-/* descarga */
 function downloadFile() {
   const a = document.createElement("a");
   a.href = selectedUrl;
@@ -271,20 +294,17 @@ function deleteFile() {
   loadFiles();
 }
 
-/* UPLOAD CON TEXTO */
+/* UPLOAD + TEXTO */
 fileInput.addEventListener("change", async (e) => {
 
   for (let f of e.target.files) {
 
-    const caption = askCaption();
+    const caption = prompt("Escribe un texto para esta foto (opcional):") || "";
+    const safeCaption = caption.replaceAll(" ", "_");
 
-    await client.storage.from("fotos").upload(
-      Date.now()+"_"+f.name,
-      f,
-      {
-        metadata: { caption }
-      }
-    );
+    const name = Date.now() + "__" + safeCaption + "__" + f.name;
+
+    await client.storage.from("fotos").upload(name, f);
   }
 
   loadFiles();
@@ -299,7 +319,12 @@ async function loadFiles() {
 
   for (let file of data) {
 
-    if (!file?.name?.includes(".")) continue;
+    if (!file?.name?.includes("__")) continue;
+
+    const parts = file.name.split("__");
+    const caption = parts[1]?.replaceAll("_", " ") || "";
+
+    const realName = file.name;
 
     const lower = file.name.toLowerCase();
 
@@ -317,16 +342,16 @@ async function loadFiles() {
     const el = document.createElement(isVideo ? "video" : "img");
     el.src = url.publicUrl;
 
-    const caption = document.createElement("div");
-    caption.className = "caption";
-    caption.textContent = file.metadata?.caption || "";
-
-    el.addEventListener("click", () =>
-      openIOS(file.name, url.publicUrl, isVideo)
-    );
+    el.addEventListener("click", () => openIOS(file.name, url.publicUrl, isVideo));
 
     wrapper.appendChild(el);
-    wrapper.appendChild(caption);
+
+    if (caption) {
+      const cap = document.createElement("div");
+      cap.className = "caption";
+      cap.innerText = caption;
+      wrapper.appendChild(cap);
+    }
 
     gallery.appendChild(wrapper);
   }
