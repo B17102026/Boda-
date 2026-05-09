@@ -112,24 +112,25 @@ body {
   font-family: 'Playfair Display', serif;
 }
 
-/* VISOR */
+/* VISOR (preview rápido) */
 .viewer {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.95);
+  background: rgba(0,0,0,0.92);
   display: none;
   justify-content: center;
   align-items: center;
-  z-index: 10000;
+  z-index: 15000;
 }
 
 .viewer img,
 .viewer video {
-  max-width: 95%;
-  max-height: 90%;
+  max-width: 90%;
+  max-height: 85%;
+  border-radius: 12px;
 }
 
-/* iOS OVERLAY */
+/* iOS OVERLAY (menú acciones) */
 .iosOverlay {
   position: fixed;
   inset: 0;
@@ -188,7 +189,6 @@ body {
 
 <div class="header">
 
-<!-- 👰🤵 NOVIOS (FONDO RESTAURADO) -->
 <svg class="header-illustration" viewBox="0 0 600 400">
   <defs>
     <pattern id="hatch" width="6" height="6">
@@ -223,7 +223,12 @@ body {
 
 <div class="gallery" id="gallery"></div>
 
-<!-- iOS MENU -->
+<!-- PREVIEW RÁPIDO -->
+<div class="viewer" id="viewer">
+  <div id="viewerMedia"></div>
+</div>
+
+<!-- MENÚ iOS -->
 <div class="iosOverlay" id="iosOverlay">
   <div class="iosPreviewBox">
     <div class="iosPreviewMedia" id="iosMedia"></div>
@@ -249,11 +254,34 @@ const fileInput = document.getElementById("fileInput");
 const iosOverlay = document.getElementById("iosOverlay");
 const iosMedia = document.getElementById("iosMedia");
 
+const viewer = document.getElementById("viewer");
+const viewerMedia = document.getElementById("viewerMedia");
+
 let selectedFile = null;
 let selectedUrl = null;
 let selectedIsVideo = false;
 
-/* IOS */
+/* =========================
+   PREVIEW RÁPIDO (TOQUE CORTO)
+========================= */
+function openPreview(url, isVideo) {
+  viewer.style.display = "flex";
+  viewerMedia.innerHTML = "";
+
+  const el = document.createElement(isVideo ? "video" : "img");
+  el.src = url;
+  if (isVideo) el.controls = true;
+
+  viewerMedia.appendChild(el);
+}
+
+viewer.addEventListener("click", () => {
+  viewer.style.display = "none";
+});
+
+/* =========================
+   MENÚ iOS (TOQUE LARGO)
+========================= */
 function openIOS(file, url, isVideo) {
 
   selectedFile = file;
@@ -295,22 +323,30 @@ function deleteFile() {
   loadFiles();
 }
 
-/* UPLOAD - 1 TEXTO PARA TODAS */
-fileInput.addEventListener("change", async (e) => {
+/* =========================
+   LONG PRESS / SHORT TAP
+========================= */
+function attachPressEvents(el, file, url, isVideo) {
 
-  const files = e.target.files;
-  if (!files.length) return;
+  let timer;
 
-  const caption = prompt("Escribe un texto para TODAS las fotos (opcional):") || "";
-  const safeCaption = caption.replaceAll(" ", "_");
+  el.addEventListener("touchstart", () => {
+    timer = setTimeout(() => {
+      openIOS(file, url, isVideo);
+    }, 500);
+  });
 
-  for (let f of files) {
-    const name = Date.now() + "__" + safeCaption + "__" + f.name;
-    await client.storage.from("fotos").upload(name, f);
-  }
+  el.addEventListener("touchend", () => {
+    if (timer) {
+      clearTimeout(timer);
+      openPreview(url, isVideo);
+    }
+  });
 
-  loadFiles();
-});
+  el.addEventListener("click", () => {
+    openPreview(url, isVideo);
+  });
+}
 
 /* LOAD */
 async function loadFiles() {
@@ -321,10 +357,7 @@ async function loadFiles() {
 
   for (let file of data) {
 
-    if (!file?.name?.includes("__")) continue;
-
-    const parts = file.name.split("__");
-    const caption = parts[1]?.replaceAll("_", " ") || "";
+    if (!file?.name?.includes(".")) continue;
 
     const lower = file.name.toLowerCase();
 
@@ -342,17 +375,9 @@ async function loadFiles() {
     const el = document.createElement(isVideo ? "video" : "img");
     el.src = url.publicUrl;
 
-    el.addEventListener("click", () => openIOS(file.name, url.publicUrl, isVideo));
+    attachPressEvents(el, file.name, url.publicUrl, isVideo);
 
     wrapper.appendChild(el);
-
-    if (caption) {
-      const cap = document.createElement("div");
-      cap.className = "caption";
-      cap.innerText = caption;
-      wrapper.appendChild(cap);
-    }
-
     gallery.appendChild(wrapper);
   }
 }
