@@ -189,7 +189,7 @@ body {
 
 <div class="header">
 
-<!-- 👰🤵 NOVIOS (FONDO RESTAURADO) -->
+<!-- 👰🤵 NOVIOS RESTAURADO EN GRIS -->
 <svg class="header-illustration" viewBox="0 0 600 400">
   <defs>
     <pattern id="hatch" width="6" height="6">
@@ -241,7 +241,7 @@ body {
 <script>
 
 const supabaseUrl = "https://evmvzqorclndjyghfpch.supabase.co";
-const supabaseKey = "TU_ANON_KEY_AQUI";
+const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV2bXZ6cW9yY2xuZGp5Z2hmcGNoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3MjMwOTQsImV4cCI6MjA5MzI5OTA5NH0.tZHpboRzPgnPZ6RjuCWEO-PgcMgIrrUQ8EqQgnnj_Mk";
 const client = supabase.createClient(supabaseUrl, supabaseKey);
 
 const gallery = document.getElementById("gallery");
@@ -254,8 +254,9 @@ let selectedFile = null;
 let selectedUrl = null;
 let selectedIsVideo = false;
 
-function openIOS(file, url, isVideo) {
+/* TODO IGUAL (SIN CAMBIOS FUNCIONALES) */
 
+function openIOS(file, url, isVideo) {
   selectedFile = file;
   selectedUrl = url;
   selectedIsVideo = isVideo;
