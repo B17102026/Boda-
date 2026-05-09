@@ -188,7 +188,6 @@ body {
 
 <div class="header">
 
-<!-- 👰🤵 NOVIOS (FONDO RESTAURADO) -->
 <svg class="header-illustration" viewBox="0 0 600 400">
   <defs>
     <pattern id="hatch" width="6" height="6">
@@ -196,17 +195,8 @@ body {
     </pattern>
   </defs>
 
-  <!-- NOVIA -->
   <path d="M220 80 C200 120,210 160,230 200 C250 260,190 310,170 360 L290 360 C270 300,220 260,250 200 C270 160,280 120,260 80 Z"
         fill="url(#hatch)" stroke="#000"/>
-
-  <circle cx="240" cy="60" r="14" fill="url(#hatch)" stroke="#000"/>
-
-  <!-- NOVIO -->
-  <path d="M380 90 L350 160 L360 360 L420 360 L410 160 Z"
-        fill="url(#hatch)" stroke="#000"/>
-
-  <circle cx="385" cy="60" r="14" fill="url(#hatch)" stroke="#000"/>
 </svg>
 
   <div class="header-content">
@@ -253,7 +243,6 @@ let selectedFile = null;
 let selectedUrl = null;
 let selectedIsVideo = false;
 
-/* IOS */
 function openIOS(file, url, isVideo) {
 
   selectedFile = file;
@@ -274,16 +263,42 @@ iosOverlay.addEventListener("click", (e) => {
   if (e.target === iosOverlay) iosOverlay.style.display = "none";
 });
 
-/* acciones */
 function shareFile() {
   navigator.share?.({ url: selectedUrl });
 }
 
-function downloadFile() {
-  const a = document.createElement("a");
-  a.href = selectedUrl;
-  a.download = "";
-  a.click();
+/* ✅ AQUÍ ESTÁ EL CAMBIO IMPORTANTE */
+async function downloadFile() {
+  try {
+    const response = await fetch(selectedUrl);
+    const blob = await response.blob();
+
+    const file = new File([blob], selectedFile || "foto.jpg", {
+      type: blob.type
+    });
+
+    // iOS / Android moderno → abre menú nativo (Guardar en fotos / compartir)
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({
+        files: [file],
+        title: "Foto"
+      });
+      return;
+    }
+
+    // fallback Android / navegador
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = selectedFile || "foto.jpg";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+
+  } catch (e) {
+    alert("No se pudo descargar");
+  }
 }
 
 function deleteFile() {
@@ -295,7 +310,6 @@ function deleteFile() {
   loadFiles();
 }
 
-/* UPLOAD - 1 TEXTO PARA TODAS */
 fileInput.addEventListener("change", async (e) => {
 
   const files = e.target.files;
@@ -312,7 +326,6 @@ fileInput.addEventListener("change", async (e) => {
   loadFiles();
 });
 
-/* LOAD */
 async function loadFiles() {
 
   gallery.innerHTML = "";
