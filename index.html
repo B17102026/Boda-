@@ -89,99 +89,103 @@ body {
   cursor: pointer;
   border-radius: 18px;
   box-shadow: 0 6px 18px rgba(0,0,0,0.12);
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
 
-/* VISOR NORMAL */
+/* VISOR TIPO iOS AVANZADO */
 .viewer {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.95);
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(20px);
   display: none;
   justify-content: center;
   align-items: center;
   z-index: 10000;
+  transition: 0.25s ease;
+}
+
+.viewerInner {
+  width: 92%;
+  height: 85%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
 }
 
 .viewer img,
 .viewer video {
-  max-width: 95%;
-  max-height: 90%;
+  max-width: 100%;
+  max-height: 100%;
+  border-radius: 18px;
+  transform: scale(1);
+  transition: transform 0.25s ease;
 }
 
 .closeViewer {
   position: absolute;
   top: 20px;
   right: 20px;
-  font-size: 30px;
+  font-size: 28px;
   color: white;
   cursor: pointer;
+  z-index: 2;
 }
 
-/* 🔥 iOS STYLE OVERLAY */
+/* 🔥 MENU iOS PRO */
 .iosOverlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.45);
-  backdrop-filter: blur(12px);
+  background: rgba(0,0,0,0.35);
+  backdrop-filter: blur(18px);
   display: none;
   align-items: center;
   justify-content: center;
   z-index: 20000;
 }
 
-/* CONTENEDOR CENTRAL */
-.iosPreviewBox {
-  display: flex;
-  align-items: center;
-  gap: 18px;
-  transform: scale(0.95);
-  animation: pop .2s ease forwards;
-}
-
-/* PREVIEW GRANDE (2/3 pantalla móvil) */
-.iosPreviewMedia {
-  width: 65vw;
+.iosSheet {
+  width: 85%;
   max-width: 420px;
-  height: 70vh;
-  border-radius: 20px;
+  background: rgba(255,255,255,0.92);
+  border-radius: 24px;
   overflow: hidden;
-  background: black;
-  box-shadow: 0 25px 70px rgba(0,0,0,0.4);
+  display: flex;
+  box-shadow: 0 30px 80px rgba(0,0,0,0.35);
 }
 
-.iosPreviewMedia img,
-.iosPreviewMedia video {
+.iosPreview {
+  flex: 1.2;
+  background: black;
+}
+
+.iosPreview img,
+.iosPreview video {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-/* MENÚ iOS */
 .iosMenu {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  justify-content: center;
+  gap: 12px;
+  padding: 14px;
 }
 
 .iosMenu button {
-  background: rgba(255,255,255,0.9);
   border: none;
-  padding: 12px 16px;
+  padding: 12px;
   border-radius: 14px;
   font-size: 14px;
+  background: #f2f2f7;
   cursor: pointer;
-  min-width: 120px;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.15);
 }
 
 .iosMenu button:active {
-  transform: scale(0.97);
-}
-
-@keyframes pop {
-  from { transform: scale(0.9); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
+  transform: scale(0.96);
 }
 
 </style>
@@ -200,13 +204,6 @@ body {
 
   <path d="M220 80 C200 120,210 160,230 200 C250 260,190 310,170 360 L290 360 C270 300,220 260,250 200 C270 160,280 120,260 80 Z"
         fill="url(#hatch)" stroke="#000"/>
-
-  <circle cx="240" cy="60" r="14" fill="url(#hatch)" stroke="#000"/>
-
-  <path d="M380 90 L350 160 L360 360 L420 360 L410 160 Z"
-        fill="url(#hatch)" stroke="#000"/>
-
-  <circle cx="385" cy="60" r="14" fill="url(#hatch)" stroke="#000"/>
 </svg>
 
   <div class="header-content">
@@ -225,11 +222,17 @@ body {
 
 <div class="gallery" id="gallery"></div>
 
-<!-- iOS OVERLAY -->
-<div class="iosOverlay" id="iosOverlay">
-  <div class="iosPreviewBox">
+<!-- VISOR -->
+<div class="viewer" id="viewer">
+  <div class="closeViewer" onclick="closeViewer()">✕</div>
+  <div class="viewerInner" id="viewerInner"></div>
+</div>
 
-    <div class="iosPreviewMedia" id="iosMedia"></div>
+<!-- MENU iOS -->
+<div class="iosOverlay" id="iosOverlay">
+  <div class="iosSheet">
+
+    <div class="iosPreview" id="iosPreview"></div>
 
     <div class="iosMenu">
       <button onclick="shareFile()">Compartir</button>
@@ -249,49 +252,59 @@ const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS
 const client = supabase.createClient(supabaseUrl, supabaseKey);
 
 const gallery = document.getElementById("gallery");
+const viewer = document.getElementById("viewer");
+const viewerInner = document.getElementById("viewerInner");
 
 const iosOverlay = document.getElementById("iosOverlay");
-const iosMedia = document.getElementById("iosMedia");
-
-const DELETE_KEY = "17102026";
+const iosPreview = document.getElementById("iosPreview");
 
 let selectedFile = null;
 let selectedUrl = null;
 let selectedIsVideo = false;
 
-/* VISOR */
+/* VISOR GRANDE */
 function openViewer(url, isVideo) {
-  const win = document.getElementById("viewerContent");
-  document.getElementById("viewer").style.display = "flex";
+  viewerInner.innerHTML = "";
+
+  const el = document.createElement(isVideo ? "video" : "img");
+  el.src = url;
+  if (isVideo) el.controls = true;
+
+  viewerInner.appendChild(el);
+  viewer.style.display = "flex";
 }
 
-/* iOS PREVIEW */
+function closeViewer() {
+  viewer.style.display = "none";
+}
+
+/* iOS MENU */
 function openIOS(file, url, isVideo) {
 
   selectedFile = file;
   selectedUrl = url;
   selectedIsVideo = isVideo;
 
-  iosMedia.innerHTML = "";
+  iosPreview.innerHTML = "";
 
   const el = document.createElement(isVideo ? "video" : "img");
   el.src = url;
   if (isVideo) el.controls = true;
 
-  iosMedia.appendChild(el);
+  iosPreview.appendChild(el);
   iosOverlay.style.display = "flex";
 }
 
-/* cerrar overlay */
-iosOverlay.addEventListener("click", (e) => {
+iosOverlay.addEventListener("click", e => {
   if (e.target === iosOverlay) iosOverlay.style.display = "none";
 });
 
-/* acciones */
+/* SHARE */
 function shareFile() {
-  navigator.share?.({ url: selectedUrl }) || alert("No disponible");
+  navigator.share?.({ url: selectedUrl });
 }
 
+/* DOWNLOAD */
 function downloadFile() {
   const a = document.createElement("a");
   a.href = selectedUrl;
@@ -299,16 +312,17 @@ function downloadFile() {
   a.click();
 }
 
+/* DELETE */
 function deleteFile() {
   const key = prompt("Clave:");
-  if (key !== DELETE_KEY) return alert("Incorrecto");
+  if (key !== "17102026") return alert("Incorrecto");
 
   client.storage.from("fotos").remove([selectedFile]);
   iosOverlay.style.display = "none";
   loadFiles();
 }
 
-/* subir */
+/* UPLOAD */
 fileInput.addEventListener("change", async (e) => {
   for (let f of e.target.files) {
     await client.storage.from("fotos").upload(Date.now()+"_"+f.name, f);
@@ -316,9 +330,8 @@ fileInput.addEventListener("change", async (e) => {
   loadFiles();
 });
 
-/* cargar */
+/* LOAD */
 async function loadFiles() {
-
   gallery.innerHTML = "";
 
   const { data } = await client.storage.from("fotos").list("", { limit: 200 });
@@ -338,30 +351,14 @@ async function loadFiles() {
     const el = document.createElement(isVideo ? "video" : "img");
     el.src = url.publicUrl;
 
-    /* CLICK NORMAL */
-    el.addEventListener("click", () => {
-      const viewer = document.getElementById("viewer");
-      const content = document.getElementById("viewerContent");
-      content.innerHTML = "";
+    el.addEventListener("click", () => openViewer(url.publicUrl, isVideo));
 
-      const big = document.createElement(isVideo ? "video" : "img");
-      big.src = url.publicUrl;
-      if (isVideo) big.controls = true;
-
-      content.appendChild(big);
-      viewer.style.display = "flex";
-    });
-
-    /* LONG PRESS (iOS STYLE) */
-    let timer;
-
+    let press;
     el.addEventListener("touchstart", () => {
-      timer = setTimeout(() => {
-        openIOS(file.name, url.publicUrl, isVideo);
-      }, 500);
+      press = setTimeout(() => openIOS(file.name, url.publicUrl, isVideo), 500);
     });
 
-    el.addEventListener("touchend", () => clearTimeout(timer));
+    el.addEventListener("touchend", () => clearTimeout(press));
 
     gallery.appendChild(el);
   }
