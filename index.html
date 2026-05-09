@@ -89,6 +89,7 @@ body {
   box-shadow: 0 12px 28px rgba(0,0,0,0.18);
   transform: rotate(var(--r));
   transition: transform 0.2s ease, box-shadow 0.2s ease;
+  will-change: transform;
 }
 
 .polaroid:hover {
@@ -243,6 +244,7 @@ let selectedFile = null;
 let selectedUrl = null;
 let selectedIsVideo = false;
 
+/* IOS */
 function openIOS(file, url, isVideo) {
 
   selectedFile = file;
@@ -267,26 +269,20 @@ function shareFile() {
   navigator.share?.({ url: selectedUrl });
 }
 
-/* ✅ AQUÍ ESTÁ EL CAMBIO IMPORTANTE */
 async function downloadFile() {
   try {
-    const response = await fetch(selectedUrl);
-    const blob = await response.blob();
+    const res = await fetch(selectedUrl);
+    const blob = await res.blob();
 
     const file = new File([blob], selectedFile || "foto.jpg", {
       type: blob.type
     });
 
-    // iOS / Android moderno → abre menú nativo (Guardar en fotos / compartir)
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      await navigator.share({
-        files: [file],
-        title: "Foto"
-      });
+      await navigator.share({ files: [file], title: "Foto" });
       return;
     }
 
-    // fallback Android / navegador
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -297,7 +293,7 @@ async function downloadFile() {
     URL.revokeObjectURL(url);
 
   } catch (e) {
-    alert("No se pudo descargar");
+    alert("Error descarga");
   }
 }
 
@@ -310,31 +306,37 @@ function deleteFile() {
   loadFiles();
 }
 
+/* UPLOAD */
 fileInput.addEventListener("change", async (e) => {
 
-  const files = e.target.files;
+  const files = [...e.target.files];
   if (!files.length) return;
 
-  const caption = prompt("Escribe un texto para TODAS las fotos (opcional):") || "";
+  const caption = prompt("Texto para TODAS las fotos:") || "";
   const safeCaption = caption.replaceAll(" ", "_");
 
-  for (let f of files) {
+  const uploads = files.map(async (f) => {
     const name = Date.now() + "__" + safeCaption + "__" + f.name;
-    await client.storage.from("fotos").upload(name, f);
-  }
+    return client.storage.from("fotos").upload(name, f);
+  });
+
+  await Promise.all(uploads);
 
   loadFiles();
 });
 
+/* LOAD (OPTIMIZADO) */
 async function loadFiles() {
 
   gallery.innerHTML = "";
 
   const { data } = await client.storage.from("fotos").list("", { limit: 200 });
 
-  for (let file of data) {
+  const fragment = document.createDocumentFragment();
 
-    if (!file?.name?.includes("__")) continue;
+  const files = (data || []).filter(f => f?.name?.includes("__"));
+
+  for (let file of files) {
 
     const parts = file.name.split("__");
     const caption = parts[1]?.replaceAll("_", " ") || "";
@@ -354,6 +356,7 @@ async function loadFiles() {
 
     const el = document.createElement(isVideo ? "video" : "img");
     el.src = url.publicUrl;
+    el.loading = "lazy";
 
     el.addEventListener("click", () => openIOS(file.name, url.publicUrl, isVideo));
 
@@ -366,8 +369,10 @@ async function loadFiles() {
       wrapper.appendChild(cap);
     }
 
-    gallery.appendChild(wrapper);
+    fragment.appendChild(wrapper);
   }
+
+  gallery.appendChild(fragment);
 }
 
 loadFiles();
