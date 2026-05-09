@@ -104,7 +104,7 @@ body {
   border-radius: 6px;
 }
 
-/* 🏷️ TEXTO POLAROID */
+/* TEXTO POLAROID */
 .caption {
   font-size: 13px;
   color: #111;
@@ -127,15 +127,6 @@ body {
 .viewer video {
   max-width: 95%;
   max-height: 90%;
-}
-
-.closeViewer {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  font-size: 30px;
-  color: white;
-  cursor: pointer;
 }
 
 /* iOS OVERLAY */
@@ -197,6 +188,7 @@ body {
 
 <div class="header">
 
+<!-- 👰🤵 NOVIOS (FONDO RESTAURADO) -->
 <svg class="header-illustration" viewBox="0 0 600 400">
   <defs>
     <pattern id="hatch" width="6" height="6">
@@ -204,8 +196,17 @@ body {
     </pattern>
   </defs>
 
+  <!-- NOVIA -->
   <path d="M220 80 C200 120,210 160,230 200 C250 260,190 310,170 360 L290 360 C270 300,220 260,250 200 C270 160,280 120,260 80 Z"
         fill="url(#hatch)" stroke="#000"/>
+
+  <circle cx="240" cy="60" r="14" fill="url(#hatch)" stroke="#000"/>
+
+  <!-- NOVIO -->
+  <path d="M380 90 L350 160 L360 360 L420 360 L410 160 Z"
+        fill="url(#hatch)" stroke="#000"/>
+
+  <circle cx="385" cy="60" r="14" fill="url(#hatch)" stroke="#000"/>
 </svg>
 
   <div class="header-content">
@@ -294,7 +295,7 @@ function deleteFile() {
   loadFiles();
 }
 
-/* UPLOAD - SOLO 1 TEXTO PARA TODAS */
+/* UPLOAD - 1 TEXTO PARA TODAS */
 fileInput.addEventListener("change", async (e) => {
 
   const files = e.target.files;
